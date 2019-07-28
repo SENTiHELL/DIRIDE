@@ -2,31 +2,16 @@
 import os, sys
 from scr import qt_gui, hotkey
 
-#FILERIDER
-#MANCORE
-#CORERIDE
-#diride.com
 programName='Dirride'
-ver='0.0.1a'
-
-toolkit="QT"
+ver='0.0.2a'
 
 from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QFrame,
     QSplitter, QStyleFactory, QApplication)
 
 
-def qt():
+def program():
     from PyQt5.QtWidgets import QApplication
     app = QApplication(sys.argv)
-
-
-
-
-    #СТАРЬЕ УДАЛИТЬ НАДО
-    #path = "./config/settings.ini"
-    #hotkey.createConfig(path)
-    #hotkey.readConfig(path, 'Settings', 'font')
-
 
     main = qt_gui.qt_gui()
     main.setProgramName(programName)
@@ -41,7 +26,5 @@ if __name__ == "__main__":
         if i == '--version':
             print(programName+' version: ' + ver)
             exit()
-        if i == 'use_gtk':
-            toolkit='GTK'
     if toolkit == "QT":
-        qt()
+        program()
