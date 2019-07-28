@@ -113,7 +113,10 @@ class qt_gui(QMainWindow):
         self.fw = explore.explore(self.main)
 
         home = os.path.expanduser('~')
-        dir =  sys.argv[1] if sys.argv[1] else home
+        if sys.argv.__len__() > 1:
+            dir = sys.argv[1] 
+        else:
+            dir = home
 
         self.fw.setDir(dir)
         self.history.set(dir)

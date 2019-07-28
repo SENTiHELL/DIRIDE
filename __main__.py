@@ -19,12 +19,19 @@ def program():
 
 
 if __name__ == "__main__":
-    sys.modules['mainfile'] = os.path.realpath(sys.argv[0])
-    sys.modules['basedir'] = os.path.dirname(os.path.realpath(sys.argv[0]))
+    realpath =  os.path.realpath(sys.argv[0])
 
+    #fix dot directory
+    if os.path.isdir(realpath):
+        realpath = realpath + '/__main__.py'
+
+    sys.modules['mainfile'] = realpath
+    sys.modules['basedir'] = os.path.dirname(realpath)
+ 
     for i in sys.argv:
         if i == '--version':
             print(programName+' version: ' + ver)
             exit()
-    if toolkit == "QT":
-        program()
+
+    program()
+   
