@@ -2,16 +2,31 @@
 import os, sys
 from scr import qt_gui, hotkey
 
+#FILERIDER
+#MANCORE
+#CORERIDE
+#diride.com
 programName='Dirride'
-ver='0.0.2a'
+ver='0.0.1a'
+
+toolkit="QT"
 
 from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QFrame,
     QSplitter, QStyleFactory, QApplication)
 
 
-def program():
+def qt():
     from PyQt5.QtWidgets import QApplication
     app = QApplication(sys.argv)
+
+
+
+
+    #СТАРЬЕ УДАЛИТЬ НАДО
+    #path = "./config/settings.ini"
+    #hotkey.createConfig(path)
+    #hotkey.readConfig(path, 'Settings', 'font')
+
 
     main = qt_gui.qt_gui()
     main.setProgramName(programName)
@@ -19,19 +34,20 @@ def program():
 
 
 if __name__ == "__main__":
-    realpath =  os.path.realpath(sys.argv[0])
+    sys.modules['mainfile'] = os.path.realpath(sys.argv[0])
 
-    #fix dot directory
-    if os.path.isdir(realpath):
-        realpath = realpath + '/__main__.py'
+    path = os.path.realpath(sys.argv[0])
+    if os.path.isfile(path):
+        dir = os.path.dirname(path)
+    else:
+        dir = path
+    sys.modules['basedir'] = dir
 
-    sys.modules['mainfile'] = realpath
-    sys.modules['basedir'] = os.path.dirname(realpath)
- 
     for i in sys.argv:
         if i == '--version':
             print(programName+' version: ' + ver)
             exit()
-
-    program()
-   
+        if i == 'use_gtk':
+            toolkit='GTK'
+    if toolkit == "QT":
+        qt()

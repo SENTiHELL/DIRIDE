@@ -20,8 +20,6 @@ class hotkey:
 
     section = "Keyboard settings"
     def __init__(self):
-        print(os.path.realpath(__main__.__file__))
-
         self.config_path = sys.modules['basedir']+'/config/settings.ini'
         self.config = self.__get_config()
 
@@ -41,8 +39,6 @@ class hotkey:
     def load(self):
         read = self.config.options(self.section)
         for e in read:
-            #print(e,e == 'delete from hell')
-            #print(self.db['Delete from hell'])
             try:
                 self.db[e].key = str(self.__readConfig(e))
             except:

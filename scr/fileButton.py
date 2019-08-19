@@ -3,6 +3,13 @@ from PyQt5.QtWidgets import QWidget, QLabel
 from PyQt5.QtGui import QIcon, QPainter, QColor, QFont, QPixmap, QPainterPath, QFontMetrics
 from PyQt5.QtCore import Qt, QSize, pyqtSignal, QRect, QRectF
 
+
+"""
+БРИФИНГ
+ТЕКСТ СЪЕЖАЕТ В ЛЕВЕЕ
+РАЗБИВКА ТЕКСТА НЕ КОРРЕКТНО
+
+"""
 class object_file(QWidget):
     size = QSize(100,100)
     iconSize = QSize(64, 64)
@@ -50,38 +57,37 @@ class object_file(QWidget):
         self.setMouseTracking(True)
 
     def paintEvent(self, event):
-        if self.btn_update == False:
-            return
+        if self.btn_update:
 
-        qp = QPainter()
-        self.iconPix.fill(Qt.transparent)
-        qp.begin(self.iconPix)
-        self.text.setStyleSheet("#text { background: none; } ")
-        self.text.setStyleSheet("#text { background: rgba(255,150,100, 0); text-align: center; border-radius: 5px;} ")
-        if self.select:
-            qp.setOpacity(.2)
-            qp.setPen(Qt.NoPen)
-            qp.setBrush(QColor(200, 0, 0))
-            #qp.drawRect(0,0, self.width(), self.height())
+            qp = QPainter()
+            self.iconPix.fill(Qt.transparent)
+            qp.begin(self.iconPix)
+            self.text.setStyleSheet("#text { background: none; } ")
+            self.text.setStyleSheet("#text { background: rgba(255,150,100, 0); text-align: center; border-radius: 5px;} ")
+            if self.select:
+                qp.setOpacity(.2)
+                qp.setPen(Qt.NoPen)
+                qp.setBrush(QColor(200, 0, 0))
+                #qp.drawRect(0,0, self.width(), self.height())
 
-            path = QPainterPath()
-            path.addRoundedRect(QRectF(self.width()/2-self.iconSize.width()/2,
-                                       0,
-                                       self.width()/2+5,
-                                       self.height()/2+5
-                                       ), 10, 10)
-            qp.drawPath(path)
-            self.text.setStyleSheet("#text { background: rgba(255,150,100, 0.5); text-align: center; border-radius: 5px;} ")
-        qp.setOpacity(self.opacity)
+                path = QPainterPath()
+                path.addRoundedRect(QRectF(self.width()/2-self.iconSize.width()/2,
+                                           0,
+                                           self.width()/2+5,
+                                           self.height()/2+5
+                                           ), 10, 10)
+                qp.drawPath(path)
+                self.text.setStyleSheet("#text { background: rgba(255,150,100, 0.5); text-align: center; border-radius: 5px;} ")
+            qp.setOpacity(self.opacity)
 
-        self.drawIcon(event, qp)
-
+            self.drawIcon(event, qp)
 
 
-        self.icon.setPixmap(self.iconPix)
 
-        qp.end()
-        self.btn_update = False
+            self.icon.setPixmap(self.iconPix)
+
+            qp.end()
+            self.btn_update = False
     def drawIcon(self, event, qp):
         #qp.setFont(QFont('Decorative', 10))
 
@@ -98,17 +104,16 @@ class object_file(QWidget):
     def setIcon(self, icon):
         self.icon_ft = icon.pixmap(QSize(64, 64))
     def setText(self, txt):
+
+
+        #ОЧЕНЬ КРИВО
         self.text.setText(self.getTextSplit(txt))
         QF = QFont()
         QFM = QFontMetrics(QF)
         bound = QFM.boundingRect(0,0, 64, 300, Qt.TextWordWrap | Qt.AlignCenter,self.getTextSplit(txt))
-        rebound = QRect(bound.x(),
-                        bound.y(),
-                        bound.width()+6,
-                        bound.height()+6)
 
         self.text.move(self.size.width()/2 - (bound.width()+15)/2, self.icon.height())
-        if bound.size().width()+15 > 100:
+        if bound.size().width() > 100:
             self.text.setFixedSize(100, bound.size().height()+2)
         else:
             self.text.setFixedSize(bound.size().width()+15, bound.size().height()+2)
@@ -175,25 +180,31 @@ class object_file(QWidget):
         self.parent().mouseReleaseEvent(event)
 
     def getTextSplit(self, text):
-
-        mw = self.size.width()-15
+        #НЕ КОРРЕКТНО
+        mw = self.size.width()-20
 
         def width(t):
             return self.text.fontMetrics().boundingRect(t).width()
-        spl = text.split(' ')
+        #Array words by space
+        spl = text.split(' ') #Разбивка по пробелам
+
+
 
         group = ''
+
         for item in spl:
             if width(item) > mw:
                 i = 0
-                w = 0
+                w = 0  #Проверка длины для новой строки
                 letter = ''
+
                 while True:
                     w = w + width(item[i])
+
                     if w > mw:
                         w = 0
                         letter += ' ' + item[i]
-                    elif item[i] == '-':
+                    elif (item[i] == '-' or item[i] == '_') and w > mw/2:
                         w = 0
                         letter += item[i] + ' '
                     else:
@@ -207,6 +218,7 @@ class object_file(QWidget):
                 group += letter + ' '
             else:
                 group += item + ' '
+
         return group
 
     def unset(self):

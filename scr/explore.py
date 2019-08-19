@@ -1,8 +1,8 @@
 import os, sys
 
-from PyQt5.QtWidgets import QWidget, QLabel, QScrollArea, QFileIconProvider,QMenu,QWidgetAction, QLineEdit, QFrame
+from PyQt5.QtWidgets import QWidget, QLabel, QScrollArea, QFileIconProvider,QMenu,QWidgetAction, QLineEdit, QFrame, QPushButton
 from PyQt5.QtCore import QTimer, QFileInfo, QPoint,  QMimeData, QUrl, Qt, QProcess
-from PyQt5.QtGui import QIcon, QDrag, QKeySequence, QMouseEvent
+from PyQt5.QtGui import QIcon, QDrag, QMouseEvent
 
 from scr.core import core
 from scr.hotkey import initKey
@@ -30,14 +30,16 @@ class explore(QWidget):
 
     #Print with hotkey
     keyPrint = None
+    selectBtn = None
+
+    anitimer = None
+    newSelect = 0
     def __init__(self, parent=None):
         super(explore, self).__init__(parent)
         self.parent = parent
         self.setAcceptDrops(True)
 
         self.init()
-    def prent(self):
-        print('daaa')
     def init(self):
         self.core = core()
         self.keyPrint = lambda: (print(self.btns),
@@ -57,48 +59,132 @@ class explore(QWidget):
 
         self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
-        self.scroll.verticalScrollBar().valueChanged.connect(self.wh_change)
+        #self.scroll.verticalScrollBar().valueChanged.connect(self.wh_change)
 
         self.scroll.wheelEvent = self.wh
 
-        #self.mousePressEvent = self.mousePressed
-
-        #self.mods = self.parent.parent().module
+        self.anitimer = QTimer()
+        self.anitimer.setInterval(1000 / 60)
+        self.anitimer.timeout.connect(self.ani_func)
+        self.anitimer.start()
 
 
         hk = sys.modules['scr.hotkey'].hotkey
 
-        hk.setInitName(hk, 'redo')
-        key = initKey()
-        key.func = lambda: self.redo()
-        hk.add(hk, key)
+        def setkey(name, func):
+            key = initKey()
+            hk.setInitName(hk, name)
+            key.func = func
+            hk.add(hk, key)
 
-        hk.setInitName(hk, 'undo')
-        key = initKey()
-        key.func = lambda: self.undo()
-        hk.add(hk, key)
+        setkey('redo', lambda: self.redo())
+        setkey('undo', lambda: self.undo())
+        setkey('selectall', lambda: self.selectAll())
+        setkey('deselectall', lambda: self.unSelectAll())
 
-        hk.setInitName(hk, 'selectall')
-        key = initKey()
-        key.func = lambda: self.selectAll()
-        hk.add(hk, key)
+        setkey('keyright', lambda: self.keyArrow('right'))
+        setkey('keyleft', lambda: self.keyArrow('left'))
+        setkey('keyup', lambda: self.keyArrow('up'))
+        setkey('keydown', lambda: self.keyArrow('down'))
 
-        hk.setInitName(hk, 'deselectall')
-        key = initKey()
-        key.func = lambda: self.unSelectAll()
-        hk.add(hk, key)
-
+        setkey('keyenter', lambda: self.keyEnter())
+        setkey('keyreturn', lambda: self.keyEnter())
 
 
-    def keyPressEvent(self, QKeyEvent):
-        if QKeyEvent.key() == 96:
-            self.keyPrint()
+
+    def keyEnter(self):
+        #print('enter', self.btns[self.newSelect].value)
+        try:
+            self.selectBtn =  self.btns[self.newSelect]
+        except:
+            print("ERROR SELECT BUTTON")
+
+        self.selectFile = os.path.normpath(self.current_dir + '/' + self.selectBtn.value)
+        # self.dFilter.dec(self.selectFile)
+
+        if os.path.isdir(self.selectFile):
+            self.setDir(self.current_dir + '/' + self.selectBtn.value)
+            self.history.set(self.current_dir, self.scroll_pos)
+
+        else:
+            self.setDir(self.current_dir + '/' + self.selectBtn.value)
+            self.lm_menu()
+
+
+
+    def keyArrow(self, e):
+        iconPerRow = int(self.scroll.width()/self.icon_size)
+        iconPerCol = int(self.scroll.height()/self.icon_size)
+        selectOn = [x for x in self.btns if x.select == True]
+
+        frameTop = self.scroll_pos
+        frameBottom = self.scroll_pos+iconPerCol*120
+
+        if selectOn:
+            select = selectOn[:1][0].value
+        else:
+            select = self.btns[0].value
+
+        for i in range(len(self.btns)):
+
+            if select == self.btns[i].value:
+
+
+
+                def deselect():
+                    b = self.btns[i]
+                    b.select = None
+                    b.leaveEvent(QMouseEvent)
+
+
+
+                if e == 'left':
+                    if i-1 >= 0:
+                        deselect()
+                        self.newSelect = i-1
+                        b = self.btns[self.newSelect]
+
+                        b.select = True
+                        b.leaveEvent(QMouseEvent)
+                elif e == 'right':
+                    if i + 1 < len(self.btns):
+                        deselect()
+                        self.newSelect = i + 1
+                        b = self.btns[self.newSelect]
+
+                        b.select = True
+                        b.leaveEvent(QMouseEvent)
+                elif e == 'up':
+                    if i - iconPerRow >= 0:
+                        deselect()
+                        self.newSelect = i - iconPerRow
+                        b = self.btns[self.newSelect]
+                        b.select = True
+                        b.leaveEvent(QMouseEvent)
+                elif e == 'down':
+                    if i + iconPerRow < len(self.btns):
+                        deselect()
+                        self.newSelect = i + iconPerRow
+                        b = self.btns[self.newSelect]
+                        b.select = True
+                        b.leaveEvent(QMouseEvent)
+                ######################################################
+
+                selectOnLine = int(self.newSelect / iconPerRow)
+                PosOnSelect = selectOnLine * self.icon_size
+
+                if PosOnSelect < frameTop:
+                    self.scroll_pos = PosOnSelect
+
+                elif PosOnSelect > frameBottom-120:
+                    self.scroll_pos = PosOnSelect - 120*3
+        print(e)
+        if e == 'enter':
+            pass
+
+
     def mousePressed(self, e):
-        #Надо пофиксить, глючит координация меню
         self.globalPos = e.globalPos()
-        #print(e.globalPos())
-
-
     def wh_change(self, e):
         #print(e, self.scroll_pos, self.targetType)
         if self.targetType == None:
@@ -108,36 +194,35 @@ class explore(QWidget):
         self.scroll_pos = self.scroll_pos - e.angleDelta().y()
 
         self.ani()
+    def hardScroll(self, e):
+        self.scroll_pos_old = e
+        self.scroll_pos = e
     def ani(self):
-
-        self.anitimer = QTimer()
-        self.anitimer.setInterval(1000/60)
-        self.anitimer.timeout.connect(self.ani_func)
-        self.anitimer.start()
         pass
     def ani_func(self):
-
+        #NOT CORRECT
         self.scroll_pos_old = self.scroll_pos_old - ( (self.scroll_pos_old - self.scroll_pos) / 5 )
-
         self.scroll.verticalScrollBar().setValue(self.scroll_pos_old)
 
 
-
+        """
         #MAX SCROLL LIMIT
         max = self.window.height() - self.scroll.height()
         if self.scroll_pos_old > max:
-            self.scroll_pos = self.scroll_pos_old = max
-            self.anitimer.stop()
-            self.anitimer.deleteLater()
-        if self.scroll_pos_old < 0:
-            self.scroll_pos = self.scroll_pos_old = 0
-            self.anitimer.stop()
-            self.anitimer.deleteLater()
-
+            #self.scroll_pos = self.scroll_pos_old = max
+            #self.anitimer.stop()
+            #self.anitimer.deleteLater()
+            pass
+        elif self.scroll_pos_old < 0:
+            #self.scroll_pos = self.scroll_pos_old = 0
+            #self.anitimer.stop()
+            #self.anitimer.deleteLater()
+            pass
         if int(self.scroll_pos_old) == int(self.scroll_pos)-1:
             self.targetType = None
-            self.anitimer.stop()
-            self.anitimer.deleteLater()
+            #self.anitimer.stop()
+            #self.anitimer.deleteLater()
+        """
 
     def setSize(self, *size):
         h,v = size
@@ -171,23 +256,43 @@ class explore(QWidget):
         str = "/bin/sh -c \""+command+"\""
 
         pros.start(str)
-        self.mousemenu.close()
-
+        try:
+            self.mousemenu.close()
+        except:
+            pass
         #self.scroll.verticalScrollBar().setValue = self.scroll_pos
         #update
 
         pass
     def proc_finish(self):
+
         self.refresh()
     def lm_menu(self):
+        print(self.selectFile)
+        self.cmd_run("xdg-open " + self.selectFile)
+
+        return
+        #НУЖНО ЛИ МЕНЮ НА ЛЕВЫЙ КЛИК?
+        #НАВЕРНОЕ ЛУЧШЕ ОРГАНИЗОВАТЬ ЧЕРЕЗ ПРОБЕЛ
         self.mousemenu = QMenu(self)
         act = QWidgetAction(self)
 
         self.menuMain = QWidget(self)
         self.menuMain.setStyleSheet('background: #111')
 
+        #XDG-OPEN
+        self.btn_open = QPushButton(self.menuMain)
+
+        self.btn_open.setStyleSheet("background: gray; text-align: left; padding-left: 3px")
+        self.btn_open.setText("Open")
+        self.btn_open.setFixedSize(194, 20)
+        self.btn_open.pressed.connect(lambda: self.cmd_run("xdg-open "+ self.selectFile))
+        self.btn_open.move(3,3)
+
+
+        #INPUT CMD
         self.lb = QLineEdit(self.menuMain)
-        self.lb.move(3, 3)
+        self.lb.move(3, 23)
         self.lb.setFixedSize(194, 20)
         self.lb.setPlaceholderText('cmd')
         self.lb.setStyleSheet('background: white')
@@ -198,7 +303,10 @@ class explore(QWidget):
         self.menuMain.setFixedSize(200, 100)
         act.setDefaultWidget(self.menuMain)
         self.mousemenu.addAction(act)
-        self.mousemenu.exec_(self.globalPos)
+        try:
+            self.mousemenu.exec_(self.globalPos)
+        except:
+            self.mousemenu.exec_([0,0])
 
     def contextMenuEvent(self, event):
         self.mousemenu = QMenu(self)
@@ -261,13 +369,29 @@ class explore(QWidget):
         self.refreshtime = QTimer()
         self.refreshtime.timeout.connect(self.refresh)
         self.refreshtime.start(1000)
+
+        self.ftime = QTimer()
+        self.ftime.timeout.connect(self.dir_final)
+        self.ftime.start(1000/60)
+
+    def dir_final(self):
+        self.ftime.deleteLater()
+        try:
+            self.btns[0].select = True
+            self.btns[0].leaveEvent(QMouseEvent)
+        except:
+            print("first select btns error")
     def redo(self):
         link = self.history.get(1)
         if link != None:
+            #self.hardScroll()
+            self.hardScroll(link[2])
             self.setDir(link[1])
     def undo(self):
         link = self.history.get(-1)
         if link != None:
+
+            self.hardScroll(link[2])
             self.setDir(link[1])
     def selectAll(self):
         #selectOn = next((x for x in self.btns if x.select == True), None)
@@ -282,9 +406,6 @@ class explore(QWidget):
                 b.unselected()
                 b.leaveEvent(QMouseEvent)
     def unSelectAll(self):
-
-
-
         for b in self.btns:
             b.unselected()
             b.leaveEvent(QMouseEvent)
@@ -552,6 +673,7 @@ class explore(QWidget):
         return iscoll
 
     def mousePressEvent(self, QMouseEvent):
+        #self.unSelectAll() #Здесь сбивает работу мыши
         self.press = True
         self.globalPos = QMouseEvent.globalPos()
         self.windowMouseCoord = self.window.mapFromGlobal(QMouseEvent.globalPos())
@@ -694,6 +816,7 @@ class explore(QWidget):
 
 
     def btn_press(self):
+
         self.globalPos = self.sender().globalPos
 
         if self.sender().target == 'None':
@@ -702,10 +825,22 @@ class explore(QWidget):
             except:
                 print('none target')
                 pass
-        if self.sender().select and self.sender().target == 'icon':
-            pass
 
-        if self.sender().type == 1 and self.sender().target == 'icon':
+
+        if not self.sender().select and self.sender().target == 'icon':
+            try:
+                self.selectBtn.select = None
+                self.selectBtn.btn_update = True
+                self.selectBtn.update()
+            except:
+                pass
+
+
+            self.sender().select = True
+            self.selectBtn = self.sender()
+            return
+
+        if self.sender() == self.selectBtn and self.sender().target == 'icon':
 
             try:
                 self.selectBtn.select = None
@@ -721,7 +856,8 @@ class explore(QWidget):
 
             if os.path.isdir(self.selectFile):
                 self.setDir(self.current_dir + '/' + self.sender().value)
-                self.history.set(self.current_dir)
+                self.history.set(self.current_dir, self.scroll_pos)
+
             else:
                 self.setDir(self.current_dir + '/' + self.sender().value)
                 self.lm_menu()

@@ -1,3 +1,4 @@
+#!/bin/python
 import os, re, math, sys, asyncio
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QDesktopWidget, QLabel
 from PyQt5.QtGui import QPainter, QColor, QFont, QBrush, QPen

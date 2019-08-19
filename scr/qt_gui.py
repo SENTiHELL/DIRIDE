@@ -57,10 +57,13 @@ class qt_gui(QMainWindow):
         self.filewindow()
         self.leftPanel()#Only last
         self.show()
-        self.setFocusPolicy(Qt.StrongFocus)
+        #self.setFocusPolicy(Qt.StrongFocus)
 
 
-    def keyPressEvent(self, QKeyEvent):
+
+
+    def keyPressEvent(self, QKeyEvent): # NO ACTUAL
+        """
         if 82 == QKeyEvent.key():#85
             self.fw.redo()
         if 85 == QKeyEvent.key():#85
@@ -68,6 +71,9 @@ class qt_gui(QMainWindow):
         if 16777268 == QKeyEvent.key(): # key F5
             self.history.set(self.fw.current_dir)
             self.fw.refresh()
+        """
+
+
     def addressbar(self):
 
         self.addrborder = QWidget(self)
@@ -113,13 +119,14 @@ class qt_gui(QMainWindow):
         self.fw = explore.explore(self.main)
 
         home = os.path.expanduser('~')
-        if sys.argv.__len__() > 1:
-            dir = sys.argv[1] 
+        if  len(sys.argv) > 1:
+            dir =  sys.argv[1]
         else:
             dir = home
-
         self.fw.setDir(dir)
-        self.history.set(dir)
+        self.history.set(dir, self.fw.scroll_pos)
+
+        self.fw.setFocus()
 
     def leftPanel(self):
         self.lPaenl = QWidget(self.main)
@@ -208,7 +215,7 @@ class qt_gui(QMainWindow):
 
         if len(redir):
             self.fw.setDir(redir)
-            self.history.set(redir)
+            self.history.set(redir, self.fw.scroll_pos)
         else:
             self.fw.setDir('/')
             self.history.set('/')
