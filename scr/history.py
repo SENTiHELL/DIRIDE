@@ -25,6 +25,7 @@ class history:
             self.urls[self.current_index][2] = scroll
         except:
             pass#self.urls[2] = 0
+
         self.current_index = len(self.urls)
         self.urls.append([self.current_index, link, 0, select])
         self.current_index += 1

@@ -93,13 +93,14 @@ class explore(QWidget):
 
 
     def keyEnter(self):
-        #print('enter', self.btns[self.newSelect].value)
         try:
             self.selectBtn =  self.btns[self.newSelect]
         except:
-            print("ERROR SELECT BUTTON")
+            self.selectBtn = self.btns[0]
 
         self.selectFile = os.path.normpath(self.current_dir + '/' + self.selectBtn.value)
+
+
         # self.dFilter.dec(self.selectFile)
 
         if os.path.isdir(self.selectFile):
@@ -308,6 +309,7 @@ class explore(QWidget):
         except:
             self.mousemenu.exec_([0,0])
 
+
     def contextMenuEvent(self, event):
         self.mousemenu = QMenu(self)
         act = QWidgetAction(self)
@@ -332,7 +334,7 @@ class explore(QWidget):
             for i in self.btns:
                 i.deleteLater()
                 del i
-            del self.btns[:]
+            del self.btns[:] # че за хрень
     def setDir(self, dir):
         dir = dir.replace("//", "/")
 
