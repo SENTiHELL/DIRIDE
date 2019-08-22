@@ -1,7 +1,7 @@
 import os, sys
 
-from PyQt5.QtWidgets import QWidget, QLabel, QScrollArea, QFileIconProvider,QMenu,QWidgetAction, QLineEdit, QFrame, QPushButton
-from PyQt5.QtCore import QTimer, QFileInfo, QPoint,  QMimeData, QUrl, Qt, QProcess
+from PyQt5.QtWidgets import QWidget, QLabel, QScrollArea, QFileIconProvider,QMenu,QWidgetAction, QLineEdit, QFrame, QPushButton, QApplication, QScrollBar
+from PyQt5.QtCore import QTimer, QFileInfo, QPoint,  QMimeData, QUrl, Qt, QProcess, QEvent
 from PyQt5.QtGui import QIcon, QDrag, QMouseEvent
 
 from scr.core import core
@@ -60,6 +60,17 @@ class explore(QWidget):
         self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
         #self.scroll.verticalScrollBar().valueChanged.connect(self.wh_change)
+        #self.scroll.verticalScrollBar().sliderMoved.connect(self.scrollMoved)
+        #self.scroll.mousePressEvent = lambda e: print(e, 'de')
+
+        self.scrBar = QScrollBar()
+        self.scroll.setVerticalScrollBar(self.scrBar)
+
+        self.scrBar.valueChanged.connect(self.wh_change)
+        self.scrBar.sliderMoved.connect(self.scrollMoved)
+        self.scrBar.wheelEvent = self.wh
+        self.scrBar.mousePressEvent = self.scrollBarPress
+        self.scrBar.mouseMoveEvent = self.scrollBarMove
 
         self.scroll.wheelEvent = self.wh
 
@@ -68,6 +79,7 @@ class explore(QWidget):
         self.anitimer.timeout.connect(self.ani_func)
         self.anitimer.start()
 
+        self.app = QApplication([])
 
         hk = sys.modules['scr.hotkey'].hotkey
 
@@ -90,8 +102,48 @@ class explore(QWidget):
         setkey('keyenter', lambda: self.keyEnter())
         setkey('keyreturn', lambda: self.keyEnter())
 
+        setkey('copy', lambda: self.copyCB())
+        setkey('paste', lambda: self.pasteCB())
 
 
+
+    def copyCB(self):#CLIPBOARD
+        self.collized = [x for x in self.btns if x.select == True]
+
+        if self.collized:
+
+            if self.current_dir[-1] == "/":
+                self.current_dir = self.current_dir[:-1]
+            self.mimeData = QMimeData()
+
+            self.urls = []
+
+            for e in self.collized:
+                self.urls.append(QUrl.fromLocalFile(self.current_dir + '/' +e.value))
+
+            self.mimeData.setUrls(self.urls)
+            print("files", self.mimeData, self.urls)
+
+            #--------------------------------
+            cb = self.app.clipboard()
+            cb.clear(mode=cb.Clipboard)
+            self.app.clipboard().setMimeData(self.mimeData, mode=cb.Clipboard)
+        pass
+    def pasteCB(self):#CLIPBOARD
+        print("paste")
+        print(self.app.clipboard().mimeData().urls())
+
+        links = []
+        mimeurls = self.app.clipboard().mimeData().urls()
+        for url in mimeurls:
+            url = QUrl(url)
+            links.append(url.toLocalFile())
+
+        cp = sys.modules['scr.core'].core.copy
+        cp(sys.modules['scr.core'].core, links, os.getcwd())
+        self.refresh()
+
+        pass
     def keyEnter(self):
         try:
             self.selectBtn =  self.btns[self.newSelect]
@@ -179,29 +231,80 @@ class explore(QWidget):
 
                 elif PosOnSelect > frameBottom-120:
                     self.scroll_pos = PosOnSelect - 120*3
-        print(e)
+
         if e == 'enter':
             pass
 
+    def scrollMoved(self):
 
-    def mousePressed(self, e):
+        self.targetType = None
+    def mousePressed(self, e):#НЕ РАБОТАЕТ
+
         self.globalPos = e.globalPos()
+
+    def scrollBarPress(self, e):
+        self.vbar = self.scroll.verticalScrollBar()
+        frameHeight = self.scroll.height()
+        current = self.vbar.value()
+        currentClick =  int(self.window.height()*(e.y()/frameHeight))
+
+        min = current
+        max = min + (self.window.height()-self.vbar.maximum())
+        print(self.vbar.maximum())
+        if not (currentClick > min and currentClick < max):
+
+            if currentClick > max:
+                    self.scroll_pos += self.scroll.height()
+            elif currentClick < min:
+                    self.scroll_pos -= self.scroll.height()
+
+        else:#Scroll Btn
+            print('min', currentClick - min)
+            self.dragStartScroll = currentClick - min# нужно, чтобы убрать дерганье
+            #self.dragStartScroll =
+        super(explore, self).mousePressEvent(e)
+
+    def scrollBarMove(self, e):
+        scrH = self.scroll.height()
+        wH = self.window.height()#self.vbar.maximum()
+        pos = e.y()/scrH
+        self.hardScroll((wH*pos)-self.dragStartScroll)
+        print(wH*pos)
+        print('scrMove', pos)
+
     def wh_change(self, e):
+
         #print(e, self.scroll_pos, self.targetType)
         if self.targetType == None:
+
             self.scroll_pos = self.scroll_pos_old = e
+
+
+
+
     def wh(self, e):
+        max = self.scroll.verticalScrollBar().maximum()
         self.targetType = 'wheel'
+
         self.scroll_pos = self.scroll_pos - e.angleDelta().y()
 
-        self.ani()
+        if self.scroll_pos > max:
+            self.hardScroll(max-1)
+        elif self.scroll_pos < 0:
+            self.hardScroll(0)
+
+
+
+
     def hardScroll(self, e):
         self.scroll_pos_old = e
         self.scroll_pos = e
-    def ani(self):
-        pass
+
     def ani_func(self):
-        #NOT CORRECT
+        max = self.scroll.verticalScrollBar().maximum()
+        if self.scroll_pos > max:
+            self.hardScroll(max)
+            return
         self.scroll_pos_old = self.scroll_pos_old - ( (self.scroll_pos_old - self.scroll_pos) / 5 )
         self.scroll.verticalScrollBar().setValue(self.scroll_pos_old)
 
@@ -797,7 +900,8 @@ class explore(QWidget):
     def dropEvent(self, event):
 
         #print(event.dropAction() == Qt.CopyAction)
-        url = QUrl()
+
+        #url = QUrl()
 
         links = []
         for url in event.mimeData().urls():
@@ -863,4 +967,3 @@ class explore(QWidget):
             else:
                 self.setDir(self.current_dir + '/' + self.sender().value)
                 self.lm_menu()
-

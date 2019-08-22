@@ -114,7 +114,7 @@ class qt_gui(QMainWindow):
     def address_key_enter(self):
         normalPath = os.path.normpath(self.address.text())
         self.fw.setDir(normalPath)
-        self.history.set(normalPath)
+        self.history.set(normalPath, 0)
     def filewindow(self):
         self.fw = explore.explore(self.main)
 

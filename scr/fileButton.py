@@ -55,7 +55,12 @@ class object_file(QWidget):
         self.show()
         self.btn_update = True
         self.setMouseTracking(True)
+        #self.main.setMouseTracking(True)
 
+        self.main.mouseMoveEvent = self.mouseMoveEvent
+    def mouseMoveEvent(self, QMouseEvent):
+        #print('de')
+        super(object_file, self).mouseMoveEvent(QMouseEvent)
     def paintEvent(self, event):
         if self.btn_update:
 

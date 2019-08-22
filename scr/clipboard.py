@@ -4,7 +4,7 @@ from PyQt5.QtGui import QClipboard, QDrag
 
 
 class cb:
-    def copy:
+    def copy(self, files = []):
         pass
-    def paste:
+    def paste(self, dir = None):
         pass
