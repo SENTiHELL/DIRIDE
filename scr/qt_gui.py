@@ -2,7 +2,8 @@
 
 import sys, os
 from PyQt5.QtWidgets import QMainWindow, QWidget, QLineEdit, QPushButton, QHBoxLayout
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import Qt, QTimer, QSize
+from PyQt5.QtGui import QResizeEvent, QIcon
 
 from scr import explore, leftPanel
 from scr.history import history
@@ -10,23 +11,20 @@ from scr.module import module
 from scr.hotkey import hotkey, initKey
 
 from pprint import pprint
+
+from scr.about import about
+
 class qt_gui(QMainWindow):
     programName = None
 
     windowfocus = True
+
+    callbackResize = []
     def __init__(self):
         super().__init__()
 
         self.initUI()
         ###
-
-        self.hotkey = hotkey()
-
-        timer = QTimer(self)
-        timer.setSingleShot(True)
-        timer.timeout.connect(self.keybind_load)
-        timer.start(0)
-
     def keybind_load(self):
         self.hotkey.load()
         self.hotkey.update()
@@ -34,12 +32,14 @@ class qt_gui(QMainWindow):
     def setProgramName(self, name):
         self.setWindowTitle(name)
     def initUI(self):
-
-
-
-
         self.setGeometry(300, 300, 800, 520)
 
+        fixedSize = QSize(360,240)
+
+        #self.setMaximumSize(fixedSize)
+        self.setMinimumSize(fixedSize)
+
+        self.setWindowIcon(QIcon(sys.modules['basedir']+'/ui/dirride.png'))
 
         self.module = module()
 
@@ -59,20 +59,14 @@ class qt_gui(QMainWindow):
         self.show()
         #self.setFocusPolicy(Qt.StrongFocus)
 
+        self.resizeEvent(QResizeEvent) #Fix geometry on start app
 
+        self.hotkey = hotkey()
 
-
-    def keyPressEvent(self, QKeyEvent): # NO ACTUAL
-        """
-        if 82 == QKeyEvent.key():#85
-            self.fw.redo()
-        if 85 == QKeyEvent.key():#85
-            self.fw.undo()
-        if 16777268 == QKeyEvent.key(): # key F5
-            self.history.set(self.fw.current_dir)
-            self.fw.refresh()
-        """
-
+        timer = QTimer(self)
+        timer.setSingleShot(True)
+        timer.timeout.connect(self.keybind_load)
+        timer.start(0)
 
     def addressbar(self):
 
@@ -109,6 +103,9 @@ class qt_gui(QMainWindow):
         self.loader.setStyleSheet("background: rgba(100,20,155,.5)")
 
         self.address.returnPressed.connect(self.address_key_enter)
+
+
+
     def setAddr(self, address):
         self.address.setText(address)
     def address_key_enter(self):
@@ -128,6 +125,7 @@ class qt_gui(QMainWindow):
 
         self.fw.setFocus()
 
+
     def leftPanel(self):
         self.lPaenl = QWidget(self.main)
         self.lPaenl.move(0, 20)
@@ -144,32 +142,41 @@ class qt_gui(QMainWindow):
         for i in ['New Tab', 'Create Folder', 'Preferenses', 'Exit']:
             p = file.addAction(i)
             p.value = i
-            p.setShortcut('Ctrl+Q')
             p.triggered.connect(self.menu_button)
 
         edit = self.bar.addMenu("Edit")
         for i in ['Undo', 'Redo', 'Paste', 'Cut', 'Paste', 'Move', 'Rename']:
             p = edit.addAction(i)
             p.value = i
-            p.setShortcut('Ctrl+Q')
             p.triggered.connect(self.menu_button)
 
         help = self.bar.addMenu("Bookmarks")
 
         help = self.bar.addMenu("help")
         for i in ['About', 'Donate', 'All Topics']:
-            help.addAction(i)
+            p = help.addAction(i)
+            p.value = i
+            p.triggered.connect(self.menu_button)
+
     def menu_button(self):
         name = self.sender().value
-        if name == 'Move':
-            print('moved')
-        if name == 'Exit':
-            sys.exit()
-            print('exit')
 
+        mn = {
+            'About': lambda: about(self),
+            'Exit': sys.exit
+        }
+        self.e = mn[name]()
+
+        #try:
+        #    self.e = mn[name]()
+        #except:
+        #    print('"'+name + '" not correcty or not exist function or errors on widget')
     def resizeEvent(self, QResizeEvent):
+        for e in self.callbackResize:
+            e()
+
         widget = self.geometry()
-        self.setGeometry(widget)
+
         self.main.setFixedSize(widget.width(), widget.height())
 
 

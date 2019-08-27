@@ -7,7 +7,7 @@ from scr import qt_gui, hotkey
 #CORERIDE
 #diride.com
 programName='Dirride'
-ver='0.0.1a'
+ver='0.1.1a'
 
 toolkit="QT"
 
@@ -42,6 +42,7 @@ if __name__ == "__main__":
     else:
         dir = path
     sys.modules['basedir'] = dir
+    sys.modules['appName'] = programName
 
     for i in sys.argv:
         if i == '--version':

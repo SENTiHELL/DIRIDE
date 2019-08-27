@@ -10,6 +10,8 @@ from scr.hotkey import initKey
 from scr.fileButton import object_file
 from scr.iconProvider import iconProvider
 
+from scr.quickrun import qrun
+
 from pprint import pprint
 
 class explore(QWidget):
@@ -41,6 +43,7 @@ class explore(QWidget):
 
         self.init()
     def init(self):
+        sys.modules['explore'] = self
         self.core = core()
         self.keyPrint = lambda: (print(self.btns),
                                  print(len(self.btns),
@@ -79,6 +82,8 @@ class explore(QWidget):
         self.anitimer.timeout.connect(self.ani_func)
         self.anitimer.start()
 
+        self.qrun = qrun(self)
+
         self.app = QApplication([])
 
         hk = sys.modules['scr.hotkey'].hotkey
@@ -105,10 +110,15 @@ class explore(QWidget):
         setkey('copy', lambda: self.copyCB())
         setkey('paste', lambda: self.pasteCB())
 
+        setkey('toggleqrun', lambda: self.qrun.toggle())
+
+        setkey('escape', lambda: print('esc explore'))
 
 
     def copyCB(self):#CLIPBOARD
         self.collized = [x for x in self.btns if x.select == True]
+
+        self.sourceDir = os.getcwd()
 
         if self.collized:
 
@@ -122,13 +132,13 @@ class explore(QWidget):
                 self.urls.append(QUrl.fromLocalFile(self.current_dir + '/' +e.value))
 
             self.mimeData.setUrls(self.urls)
-            print("files", self.mimeData, self.urls)
+
 
             #--------------------------------
             cb = self.app.clipboard()
             cb.clear(mode=cb.Clipboard)
             self.app.clipboard().setMimeData(self.mimeData, mode=cb.Clipboard)
-        pass
+
     def pasteCB(self):#CLIPBOARD
         print("paste")
         print(self.app.clipboard().mimeData().urls())
@@ -140,7 +150,7 @@ class explore(QWidget):
             links.append(url.toLocalFile())
 
         cp = sys.modules['scr.core'].core.copy
-        cp(sys.modules['scr.core'].core, links, os.getcwd())
+        cp(sys.modules['scr.core'].core, self.sourceDir, links, os.getcwd())
         self.refresh()
 
         pass
@@ -152,9 +162,6 @@ class explore(QWidget):
 
         self.selectFile = os.path.normpath(self.current_dir + '/' + self.selectBtn.value)
 
-
-        # self.dFilter.dec(self.selectFile)
-
         if os.path.isdir(self.selectFile):
             self.setDir(self.current_dir + '/' + self.selectBtn.value)
             self.history.set(self.current_dir, self.scroll_pos)
@@ -163,77 +170,84 @@ class explore(QWidget):
             self.setDir(self.current_dir + '/' + self.selectBtn.value)
             self.lm_menu()
 
-
+    def selectFiles(self):
+        self.collized = [x.value for x in self.btns if x.select == True]
+        return self.collized
 
     def keyArrow(self, e):
-        iconPerRow = int(self.scroll.width()/self.icon_size)
-        iconPerCol = int(self.scroll.height()/self.icon_size)
-        selectOn = [x for x in self.btns if x.select == True]
+        if self.btns:
+            iconPerRow = int(self.scroll.width()/self.icon_size)
+            iconPerCol = int(self.scroll.height()/self.icon_size)
+            selectOn = [x for x in self.btns if x.select == True]
 
-        frameTop = self.scroll_pos
-        frameBottom = self.scroll_pos+iconPerCol*120
+            frameTop = self.scroll_pos
+            frameBottom = self.scroll_pos+iconPerCol*120
 
-        if selectOn:
-            select = selectOn[:1][0].value
-        else:
-            select = self.btns[0].value
+            if selectOn:
+                select = selectOn[:1][0].value
+            else:
+                select = self.btns[0].value
 
-        for i in range(len(self.btns)):
+            for i in range(len(self.btns)):
 
-            if select == self.btns[i].value:
-
-
-
-                def deselect():
-                    b = self.btns[i]
-                    b.select = None
-                    b.leaveEvent(QMouseEvent)
+                if select == self.btns[i].value:
 
 
 
-                if e == 'left':
-                    if i-1 >= 0:
-                        deselect()
-                        self.newSelect = i-1
-                        b = self.btns[self.newSelect]
-
-                        b.select = True
+                    def deselect():
+                        b = self.btns[i]
+                        b.select = None
                         b.leaveEvent(QMouseEvent)
-                elif e == 'right':
-                    if i + 1 < len(self.btns):
-                        deselect()
-                        self.newSelect = i + 1
-                        b = self.btns[self.newSelect]
 
-                        b.select = True
-                        b.leaveEvent(QMouseEvent)
-                elif e == 'up':
-                    if i - iconPerRow >= 0:
-                        deselect()
-                        self.newSelect = i - iconPerRow
-                        b = self.btns[self.newSelect]
-                        b.select = True
-                        b.leaveEvent(QMouseEvent)
-                elif e == 'down':
-                    if i + iconPerRow < len(self.btns):
-                        deselect()
-                        self.newSelect = i + iconPerRow
-                        b = self.btns[self.newSelect]
-                        b.select = True
-                        b.leaveEvent(QMouseEvent)
-                ######################################################
 
-                selectOnLine = int(self.newSelect / iconPerRow)
-                PosOnSelect = selectOnLine * self.icon_size
 
-                if PosOnSelect < frameTop:
-                    self.scroll_pos = PosOnSelect
+                    if e == 'left':
+                        if i-1 >= -1:
+                            deselect()
+                            if i-1 == -1:
+                                self.newSelect = 0
+                            else:
+                                self.newSelect = i-1
+                            b = self.btns[self.newSelect]
 
-                elif PosOnSelect > frameBottom-120:
-                    self.scroll_pos = PosOnSelect - 120*3
+                            b.select = True
+                            b.leaveEvent(QMouseEvent)
+                    elif e == 'right':
+                        if i + 1 < len(self.btns):
+                            deselect()
+                            self.newSelect = i + 1
+                            b = self.btns[self.newSelect]
 
-        if e == 'enter':
-            pass
+                            b.select = True
+                            b.leaveEvent(QMouseEvent)
+                    elif e == 'up':
+                        if i - iconPerRow >= 0:
+                            deselect()
+                            self.newSelect = i - iconPerRow
+                            b = self.btns[self.newSelect]
+                            b.select = True
+                            b.leaveEvent(QMouseEvent)
+                    elif e == 'down':
+                        if i + iconPerRow < len(self.btns):
+                            deselect()
+                            self.newSelect = i + iconPerRow
+                            b = self.btns[self.newSelect]
+                            b.select = True
+                            b.leaveEvent(QMouseEvent)
+
+                    ######################################################
+
+                    selectOnLine = int(self.newSelect / iconPerRow)
+                    PosOnSelect = selectOnLine * self.icon_size
+
+                    if PosOnSelect < frameTop:
+                        self.scroll_pos = PosOnSelect
+
+                    elif PosOnSelect > frameBottom-120:
+                        self.scroll_pos = PosOnSelect - 120*3
+
+            if e == 'enter':
+                pass
 
     def scrollMoved(self):
 
@@ -478,14 +492,16 @@ class explore(QWidget):
         self.ftime = QTimer()
         self.ftime.timeout.connect(self.dir_final)
         self.ftime.start(1000/60)
-
+        sys.modules['m'].setProgramName(sys.modules['appName'] + ' - ' + os.path.basename(os.getcwd()))
     def dir_final(self):
         self.ftime.deleteLater()
+        """
         try:
             self.btns[0].select = True
             self.btns[0].leaveEvent(QMouseEvent)
         except:
             print("first select btns error")
+        """
     def redo(self):
         link = self.history.get(1)
         if link != None:
@@ -817,9 +833,11 @@ class explore(QWidget):
             url = []
             hover=None
             for e in self.collized:
-                if e.hover:
-                    hover = True
-
+                try:
+                    if e.hover:
+                        hover = True
+                except:
+                    pass
             if hover:
 
                 self.mimeData = QMimeData()

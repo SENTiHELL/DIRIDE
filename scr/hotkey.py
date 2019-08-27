@@ -11,12 +11,17 @@ class initKey:
 key['undo'].func = lambda: sys.modules['m'].main.undo()
 """
 
-from PyQt5.QtWidgets import QMainWindow, QWidget, QShortcut
+from PyQt5.QtWidgets import QShortcut
 from PyQt5.QtGui import QKeySequence
 import sys, __main__
 class hotkey:
     db = {}
+    actives = [] #hotkey.activated arrays
+
     name = None
+    lock = None
+
+    restore_hk = []
 
     section = "Keyboard settings"
     def __init__(self):
@@ -46,17 +51,47 @@ class hotkey:
     def update(self):
         main = sys.modules['m'] #main class
 
-
         for e in self.db:
             o = self.db[e]
             #print(o.func)
             if o.key:
-                shortcut = QShortcut(QKeySequence(o.key.replace(" ", "")), main)
-                shortcut.activated.connect(o.func)
-    def list(self):
-        for e in self.db:
-            print('list', self.db[e].func)
+                if not self.lock:
+                    shortcut = QShortcut(QKeySequence(o.key.replace(" ", "")), main)
+                    self.actives.append(shortcut)
 
+                    shortcut.activated.connect(o.func)
+
+    def reassing(self, key, callback):
+        main = sys.modules['m']  # main class
+        key = key.replace(" ", "")
+
+        for act in range(len(self.actives)):
+            if key.lower() == self.actives[act].key().toString().lower():
+                k = key.lower()
+                self.restore_hk.append( [k, self.getHotKey(self, k)] )
+                #print(self.restore_hk)
+                self.actives[act].activated.disconnect()
+                self.actives[act].activated.connect(callback)
+                break
+
+    def getHotKey(self, skey):
+        for e in self.db:
+            o = self.db[e]
+            if o.key == skey.lower():
+                return o.func
+
+
+    def restore(self):
+        for e in self.restore_hk:
+            for act in range(len(self.actives)):
+                if e[0] == self.actives[act].key().toString().lower():
+                    self.actives[act].activated.disconnect()
+                    self.actives[act].activated.connect(e[1])
+        #print(self.restore_hk)
+        self.restore_hk = []
+
+    def list(self):
+        return self.db
     ######################################################
     #PRIVATE
     ######################################################

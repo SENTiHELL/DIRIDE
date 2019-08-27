@@ -58,6 +58,7 @@ class object_file(QWidget):
         #self.main.setMouseTracking(True)
 
         self.main.mouseMoveEvent = self.mouseMoveEvent
+
     def mouseMoveEvent(self, QMouseEvent):
         #print('de')
         super(object_file, self).mouseMoveEvent(QMouseEvent)

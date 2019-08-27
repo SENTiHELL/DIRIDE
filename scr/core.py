@@ -1,5 +1,5 @@
 #!/bin/python
-import os, re, math, sys, asyncio
+import os, re, math, stat
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QDesktopWidget, QLabel
 from PyQt5.QtGui import QPainter, QColor, QFont, QBrush, QPen
 from PyQt5.QtCore import Qt, QTimer, QThread
@@ -9,6 +9,12 @@ import aiofiles
 
 from time import sleep
 
+
+"""
+БРИФИНГ
+НУЖНО РЕАЛИЗОВАТЬ ПРАВА И ЮЗЕР ПАПОК И ФАЙЛОВ
+
+"""
 class indicator(QWidget):
     frame = 0
     process = 0
@@ -19,11 +25,13 @@ class indicator(QWidget):
     tmp_bytes = 0
     tmp_bytes_array = []
     current_file_name = ''
-    def __init__(self, arr, dest):
+    def __init__(self, sourcedir, arr, dest):
         super().__init__()
-
         self.arr = arr
         self.dest = dest
+        self.sourceDir = sourcedir
+
+
         self.initUI()
         self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
         self.setWindowOpacity(0.3)
@@ -132,31 +140,59 @@ class indicator(QWidget):
 
         self.frame = self.frame + 1
     def scanFiles(self):
+
+        ###############################
+        #НАДО РАЗОБРАТЬ
+
         files = []
+        dirs = []
+
         for f in self.arr:
             if os.path.isdir(f):
-                files = files + self.getFilesFromFolder(f)
+                obj = self.getFilesFromFolder(f)
+                files = files + obj[1]
+                dirs = dirs + obj[0]
             elif os.path.isfile(f):
-                files.append(f)
+                files.append('/' + os.path.basename(f))
+
+        #Create folders
+        for d in dirs:
+            try:
+                os.mkdir(self.dest + d)
+            except:
+                print("Dir is exist")
+            #print(self.dest + d)
 
         bytes = 0
         for f in files:
-            s = os.path.getsize(f)
+            print(self.sourceDir + f)
+            s = os.path.getsize(self.sourceDir + f)
             bytes = bytes + s
 
         #self.setCopy(files, self.dest + '/' + os.path.basename(f))
         self.allBytes = bytes
 
-        self.setCopy(files, self.dest)
-        #mb = float('{:.1f}'.format(bytes/1024/1024))
-        #print('SIZE_static:',mb, int(bytes))
+
+        ######
+        #DEST недостаточно, нужно еще папки прописать
+        # self.destDIR + self.dest
+        ######
+
+        self.setCopy(files, self.sourceDir, self.dest)
+
     def getFilesFromFolder(self, dir):
         files = []
+        dirs = []
         # r=root, d=directories, f = files
         for r, d, f in os.walk(dir):
+            #cleanup files for destination
+            dir = r[len(self.sourceDir):]
+            dirs.append(dir)
+            #print(dir)
             for file in f:
-                files.append(os.path.join(r, file))
-        return files
+                files.append(os.path.join(r, dir+'/'+file))
+
+        return [dirs, files]
         """
         for f in files:
             print('seq file: ',f)
@@ -164,16 +200,28 @@ class indicator(QWidget):
 
     def progressCopy(self):
 
-        src = self.cpFiles[self.countFinish-1]
-        dest = self.cpDest +'/'+os.path.basename(src)
+
+        src = self.cpSource + self.cpFiles[self.countFinish-1]
+        dest = self.cpDest + self.cpFiles[self.countFinish-1]
+        #dest = self.cpDest +'/'+os.path.basename(src)
+
         self.copyfileobj(src=src,
                          dst=dest,
                          callback_progress=self.progress,
                          callback_copydone=self.copydone)
 
-    def setCopy(self, srcs, dest):
+    def setCopy(self, files, srcs, dest):
 
-        self.cpFiles = srcs
+        """
+        for d in self.dir:
+            print(self.dest + '/' + d)
+            try:
+                os.mkdir(self.dest + '/' + d)
+            except:
+                print(d, "file exists")
+        """
+        self.cpFiles = files
+        self.cpSource = srcs
         self.cpDest = dest
         self.len = len(self.cpFiles)
 
@@ -187,11 +235,13 @@ class indicator(QWidget):
         self.process = int(self.full_copy / self.allBytes * 100)
 
     def copydone(self, fsrc, fdst, copied):
+        st = os.stat(fsrc.name)  # для получения текущих разрешений
+        os.chmod(fdst.name, st.st_mode) #| stat.S_IEXEC) # Копирование разрешений
+        print('fdst.name', fdst.name)
 
         self.countFinish += 1
         if self.countFinish == self.len:
             self.finish()
-            return
         else:
             self.progressCopy()
 
@@ -252,22 +302,6 @@ class io_thread(QThread):
 
                 self.callback_copydone(fsrc=fsrc, fdst=fdst, copied=len(buf))
 
-        """
-        old test
-        delete this code 
-        
-        with open(self.reador_d, 'rb') as sr:
-
-            while True:
-
-                buf = sr.read(8 * 1024)
-                print(buf)
-                if not buf:
-                    break
-
-        """
-
-
 
 class core:
     sort = None
@@ -277,18 +311,13 @@ class core:
 
 
 
-
-
-
-
-
-
-
-
     def read_dir(self, url):
 
-        files = os.listdir(os.path.realpath(url))
-
+        try:
+            files = os.listdir(os.path.realpath(url))
+        except PermissionError:
+            #print(PermissionError)
+            print('PermissionError', '320 core.py')
         self.last_query_url = self.sort_list(files)
         return self.last_query_url
 
@@ -330,24 +359,9 @@ class core:
         pass
     def create_dir(self, url):
         pass
-    def copy(self, FROM, TO):
-        """
-        def an():
-            self.cp = indicator(FROM, TO)
-        self.auto_start_timer = QTimer()
-        self.auto_start_timer.timeout.connect(an)
-        self.auto_start_timer.setSingleShot(True)
-        self.auto_start_timer.start(0)
-        """
-        self.cp = indicator(FROM, TO)
+    def copy(self, SOURCEDIR, FROM, TO):
+        self.cp = indicator(SOURCEDIR, FROM, TO)
 
-
-        return
-        if type(FROM) == list:
-            for i in FROM:
-                os.system('cp "'+i+'" "'+TO+'"')
-        else:
-            os.system('cp "'+FROM+'" "'+TO+'"')
     def symlink(self, FROM, TO):
         pass
     def type_file(self, file):
