@@ -25,7 +25,7 @@ class explore(QWidget):
     scroll_pos = 0
 
     btns = []
-    targetType = None
+    #targetType = None
 
     mouse = [0,0]
     collized = []
@@ -36,6 +36,8 @@ class explore(QWidget):
 
     anitimer = None
     newSelect = 0
+
+    select_old = [0]
     def __init__(self, parent=None):
         super(explore, self).__init__(parent)
         self.parent = parent
@@ -97,12 +99,17 @@ class explore(QWidget):
         setkey('redo', lambda: self.redo())
         setkey('undo', lambda: self.undo())
         setkey('selectall', lambda: self.selectAll())
-        setkey('deselectall', lambda: self.unSelectAll())
+        setkey('deselectall', lambda: self.deselect())
 
         setkey('keyright', lambda: self.keyArrow('right'))
         setkey('keyleft', lambda: self.keyArrow('left'))
         setkey('keyup', lambda: self.keyArrow('up'))
         setkey('keydown', lambda: self.keyArrow('down'))
+
+        setkey('ctrlkeyright', lambda: self.keyArrow('right', 1))
+        setkey('ctrlkeyleft', lambda: self.keyArrow('left', 1))
+        setkey('ctrlkeyup', lambda: self.keyArrow('up', 1))
+        setkey('ctrlkeydown', lambda: self.keyArrow('down', 1))
 
         setkey('keyenter', lambda: self.keyEnter())
         setkey('keyreturn', lambda: self.keyEnter())
@@ -114,7 +121,8 @@ class explore(QWidget):
 
         setkey('escape', lambda: print('esc explore'))
 
-
+        sys.modules['m'].callbackResize.append(self.res)
+        self.res()
     def copyCB(self):#CLIPBOARD
         self.collized = [x for x in self.btns if x.select == True]
 
@@ -174,8 +182,10 @@ class explore(QWidget):
         self.collized = [x.value for x in self.btns if x.select == True]
         return self.collized
 
-    def keyArrow(self, e):
+    def keyArrow(self, e, mod=0):
         if self.btns:
+
+
             iconPerRow = int(self.scroll.width()/self.icon_size)
             iconPerCol = int(self.scroll.height()/self.icon_size)
             selectOn = [x for x in self.btns if x.select == True]
@@ -184,26 +194,22 @@ class explore(QWidget):
             frameBottom = self.scroll_pos+iconPerCol*120
 
             if selectOn:
-                select = selectOn[:1][0].value
+                #select = selectOn[:1][0].value
+                slo = self.select_old[-1]
+
+                #select = self.btns[self.select_old[-1]][0].value
+                select = self.btns[slo].value
             else:
                 select = self.btns[0].value
+
 
             for i in range(len(self.btns)):
 
                 if select == self.btns[i].value:
 
-
-
-                    def deselect():
-                        b = self.btns[i]
-                        b.select = None
-                        b.leaveEvent(QMouseEvent)
-
-
-
                     if e == 'left':
                         if i-1 >= -1:
-                            deselect()
+                            self.deselect()
                             if i-1 == -1:
                                 self.newSelect = 0
                             else:
@@ -214,7 +220,7 @@ class explore(QWidget):
                             b.leaveEvent(QMouseEvent)
                     elif e == 'right':
                         if i + 1 < len(self.btns):
-                            deselect()
+                            self.deselect()
                             self.newSelect = i + 1
                             b = self.btns[self.newSelect]
 
@@ -222,19 +228,30 @@ class explore(QWidget):
                             b.leaveEvent(QMouseEvent)
                     elif e == 'up':
                         if i - iconPerRow >= 0:
-                            deselect()
+                            self.deselect()
                             self.newSelect = i - iconPerRow
                             b = self.btns[self.newSelect]
                             b.select = True
                             b.leaveEvent(QMouseEvent)
                     elif e == 'down':
                         if i + iconPerRow < len(self.btns):
-                            deselect()
+                            self.deselect()
                             self.newSelect = i + iconPerRow
                             b = self.btns[self.newSelect]
                             b.select = True
                             b.leaveEvent(QMouseEvent)
 
+                    if mod == 1:
+                        for e in self.select_old:
+
+                            b = self.btns[e]
+                            b.select = True
+                            b.leaveEvent(QMouseEvent)
+
+                        self.select_old += [self.newSelect]
+                    else:
+                        self.select_old = [self.newSelect]
+                    print(self.select_old)
                     ######################################################
 
                     selectOnLine = int(self.newSelect / iconPerRow)
@@ -249,13 +266,13 @@ class explore(QWidget):
             if e == 'enter':
                 pass
 
+
+
     def scrollMoved(self):
-
-        self.targetType = None
+        #self.targetType = None
+        pass
     def mousePressed(self, e):#НЕ РАБОТАЕТ
-
         self.globalPos = e.globalPos()
-
     def scrollBarPress(self, e):
         self.vbar = self.scroll.verticalScrollBar()
         frameHeight = self.scroll.height()
@@ -264,7 +281,6 @@ class explore(QWidget):
 
         min = current
         max = min + (self.window.height()-self.vbar.maximum())
-        print(self.vbar.maximum())
         if not (currentClick > min and currentClick < max):
 
             if currentClick > max:
@@ -273,32 +289,32 @@ class explore(QWidget):
                     self.scroll_pos -= self.scroll.height()
 
         else:#Scroll Btn
-            print('min', currentClick - min)
             self.dragStartScroll = currentClick - min# нужно, чтобы убрать дерганье
-            #self.dragStartScroll =
         super(explore, self).mousePressEvent(e)
 
     def scrollBarMove(self, e):
         scrH = self.scroll.height()
         wH = self.window.height()#self.vbar.maximum()
         pos = e.y()/scrH
-        self.hardScroll((wH*pos)-self.dragStartScroll)
-        print(wH*pos)
-        print('scrMove', pos)
-
+        try:
+            self.hardScroll((wH*pos)-self.dragStartScroll)
+        except:
+            pass
     def wh_change(self, e):
 
         #print(e, self.scroll_pos, self.targetType)
-        if self.targetType == None:
-
-            self.scroll_pos = self.scroll_pos_old = e
+        #if self.targetType == None:
 
 
+        #EEEE
+        #self.scroll_pos = self.scroll_pos_old = e
+
+        pass
 
 
     def wh(self, e):
         max = self.scroll.verticalScrollBar().maximum()
-        self.targetType = 'wheel'
+        #self.targetType = 'wheel'
 
         self.scroll_pos = self.scroll_pos - e.angleDelta().y()
 
@@ -309,42 +325,19 @@ class explore(QWidget):
 
 
 
-
     def hardScroll(self, e):
-        self.scroll_pos_old = e
-        self.scroll_pos = e
+        self.scroll_pos = self.scroll_pos_old = e
+
 
     def ani_func(self):
-        max = self.scroll.verticalScrollBar().maximum()
-        if self.scroll_pos > max:
-            self.hardScroll(max)
-            return
-        self.scroll_pos_old = self.scroll_pos_old - ( (self.scroll_pos_old - self.scroll_pos) / 5 )
+
+        self.scroll_pos_old = self.scroll_pos_old - ( (self.scroll_pos_old - self.scroll_pos) / 4 )
         self.scroll.verticalScrollBar().setValue(self.scroll_pos_old)
 
 
-        """
-        #MAX SCROLL LIMIT
-        max = self.window.height() - self.scroll.height()
-        if self.scroll_pos_old > max:
-            #self.scroll_pos = self.scroll_pos_old = max
-            #self.anitimer.stop()
-            #self.anitimer.deleteLater()
-            pass
-        elif self.scroll_pos_old < 0:
-            #self.scroll_pos = self.scroll_pos_old = 0
-            #self.anitimer.stop()
-            #self.anitimer.deleteLater()
-            pass
-        if int(self.scroll_pos_old) == int(self.scroll_pos)-1:
-            self.targetType = None
-            #self.anitimer.stop()
-            #self.anitimer.deleteLater()
-        """
-
     def setSize(self, *size):
         h,v = size
-
+        print(self.size())
         self.window.setFixedWidth(h)
 
         self.setFixedSize(*size)
@@ -488,13 +481,15 @@ class explore(QWidget):
         self.refreshtime = QTimer()
         self.refreshtime.timeout.connect(self.refresh)
         self.refreshtime.start(1000)
-
+        """
         self.ftime = QTimer()
         self.ftime.timeout.connect(self.dir_final)
         self.ftime.start(1000/60)
+        """
         sys.modules['m'].setProgramName(sys.modules['appName'] + ' - ' + os.path.basename(os.getcwd()))
-    def dir_final(self):
-        self.ftime.deleteLater()
+
+    #def dir_final(self):
+    #    self.ftime.deleteLater()
         """
         try:
             self.btns[0].select = True
@@ -526,10 +521,11 @@ class explore(QWidget):
             for b in self.btns:
                 b.unselected()
                 b.leaveEvent(QMouseEvent)
-    def unSelectAll(self):
+    def deselect(self):
         for b in self.btns:
             b.unselected()
             b.leaveEvent(QMouseEvent)
+
     def asyncRender(self):
 
         self.renderTime = QTimer()
@@ -579,6 +575,9 @@ class explore(QWidget):
             except:
                 pass
         self.btns = btns_rebuild
+    def res(self):
+        print('a',self.window.size(), self.size())
+
     def reposition(self):
         if self.btns == None:
             self.btns = []
@@ -604,7 +603,16 @@ class explore(QWidget):
             if i % count_hoz == count_hoz - 1:
                 l = l + 1
             i = i + 1
-        self.window.setFixedHeight((l+1) * self.icon_size)
+
+
+        #WINDOW SCROLL
+        m = sys.modules['m']
+
+
+        if self.window.height() <= self.height()-m.addrborder.height():
+            self.window.setFixedHeight(self.height()-m.addrborder.height())
+        else:
+            self.window.setFixedHeight((l+1) * self.icon_size)
 
 
     def dir_mod(self):
@@ -614,6 +622,7 @@ class explore(QWidget):
         btn = object_file(self.window)
         realfile = self.current_dir + '/' + f
 
+        #btn.realfile = realfile
         if core.type_file(self, realfile) == 'folder':
             btn.setIconFromTheme('folder')
         else:
@@ -629,6 +638,7 @@ class explore(QWidget):
         btn.value = f
         btn.clicked.connect(self.btn_press)
 
+        btn.setTrigger('123')
         self.btns.append(btn)
 
     def refresh(self):
@@ -730,8 +740,10 @@ class explore(QWidget):
             try:
                 realfile = self.current_dir + '/' + combine[file]
             except:
-                #print('no found file error')
+                print('733 explore', 'no found file error')
                 return
+
+            btn.realfile = realfile
 
             if core.type_file(self, realfile) == 'folder':
                 btn.setIconFromTheme('folder')
@@ -763,7 +775,7 @@ class explore(QWidget):
                 btn.date = 0
 
             btn.clicked.connect(self.btn_press)
-
+            btn.setTrigger(lambda: self.button_trigger)
             self.btns.append(btn)
 
             if i%50 == 0:
@@ -784,17 +796,22 @@ class explore(QWidget):
         iscoll = []
 
         for b in self.btns:
-            e ={'x': b.pos().x()+50,
-                'y': b.pos().y()+35,
-                'w': b.pos().x()+8,
-                'h': b.pos().y()+8}
+            e ={'x': b.pos().x() + 120,
+                'y': b.pos().y() +  120,
+                'w': (b.pos().x() + b.size.width()) - b.size.width(),
+                'h': (b.pos().y() + b.size.height()) - b.size.height()}
 
-            if e['x'] > self.select_rect_coll[0]  and e['x'] < self.select_rect_coll[2] and e['y'] > self.select_rect_coll[1] and e['y'] < self.select_rect_coll[3]:
-                    iscoll.append(b)
+            if (e['x'] > self.select_rect_coll[0]  and e['w'] < self.select_rect_coll[2]) \
+                and (e['y'] > self.select_rect_coll[1] and e['h'] < self.select_rect_coll[3]):
+                iscoll.append(b)
         return iscoll
 
     def mousePressEvent(self, QMouseEvent):
         #self.unSelectAll() #Здесь сбивает работу мыши
+        hover = self.isHoverButton()
+        if not hover:
+            self.deselect()
+
         self.press = True
         self.globalPos = QMouseEvent.globalPos()
         self.windowMouseCoord = self.window.mapFromGlobal(QMouseEvent.globalPos())
@@ -824,22 +841,26 @@ class explore(QWidget):
         else:
             self.itemsSelection = None
 
+
+    def isHoverButton(self):
+        for e in self.btns:
+            try:
+                if e.hover:
+                    return True
+            except:
+                pass
+    def isHoverButtonSelection(self):
+        for e in self.collized:
+            try:
+                if e.hover:
+                    return True
+            except:
+                pass
     def mouseMoveEvent(self, QMouseEvent):
-
-
+        hover = self.isHoverButtonSelection()
 
         if self.itemsSelection:
-
-            url = []
-            hover=None
-            for e in self.collized:
-                try:
-                    if e.hover:
-                        hover = True
-                except:
-                    pass
             if hover:
-
                 self.mimeData = QMimeData()
 
                 urls = []
@@ -856,6 +877,7 @@ class explore(QWidget):
                 self.drag.exec(Qt.CopyAction)
 
 
+
                 if self.press:
                     pass
             else:
@@ -863,9 +885,11 @@ class explore(QWidget):
                     b.unselected()
                 self.select_rect_coll = []
                 self.collized = []
-        else:
+
+        else: #if self.itemsSelection
             if self.btns == None:
                 return
+
             self.select_rect_coll = [self.selection.x(), self.selection.y(),
                                      self.selection.x() + self.selection.width(),
                                      self.selection.y() + self.selection.height()]
@@ -887,6 +911,7 @@ class explore(QWidget):
 
             invertmove = self.startCoord - movePoint
 
+            #Drawing selection
             if movePoint.x() > 0 and movePoint.y() > 0:
                 self.selection.setFixedSize(abs(movePoint.x()), abs(movePoint.y()))
                 self.selection.move(invertmove)
@@ -932,13 +957,17 @@ class explore(QWidget):
             #    print(path)
         #self.refresh()
     def dragEnterEvent(self, event):
-        if event.mimeData().hasUrls():
 
+        if event.mimeData().hasUrls():
             event.accept()
         else:
             event.ignore()
+    def dragMoveEvent(self, Event):
+        print('drag', Event.pos())
 
 
+    def button_trigger(self, e):
+        print('WIN', e.value)
     def btn_press(self):
 
         self.globalPos = self.sender().globalPos
@@ -974,9 +1003,7 @@ class explore(QWidget):
                 pass
 
             self.selectBtn = self.sender()
-
             self.selectFile = os.path.normpath(self.current_dir + '/' +self.sender().value)
-            #self.dFilter.dec(self.selectFile)
 
             if os.path.isdir(self.selectFile):
                 self.setDir(self.current_dir + '/' + self.sender().value)

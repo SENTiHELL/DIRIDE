@@ -20,6 +20,7 @@ class qrun(QWidget):
 
         self.m = sys.modules['m']
         self.main = QWidget(self.m)
+
         self.textInput = QLineEdit(self.main)
         self.textInput.setFrame(False)
 
@@ -105,7 +106,7 @@ class qrun(QWidget):
 
             print('unlock')
     def keyArrow(self, key):
-
+        self.update()
         if key == 'down':
             self.key_history +=1
             if self.key_history > len(self.history_command)-1:

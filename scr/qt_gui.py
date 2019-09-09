@@ -1,9 +1,9 @@
 #!/bin/python
 
 import sys, os
-from PyQt5.QtWidgets import QMainWindow, QWidget, QLineEdit, QPushButton, QHBoxLayout
+from PyQt5.QtWidgets import QMainWindow, QWidget, QLineEdit, QPushButton, QHBoxLayout, QStyleFactory
 from PyQt5.QtCore import Qt, QTimer, QSize
-from PyQt5.QtGui import QResizeEvent, QIcon
+from PyQt5.QtGui import QResizeEvent, QIcon, QValidator
 
 from scr import explore, leftPanel
 from scr.history import history
@@ -32,12 +32,12 @@ class qt_gui(QMainWindow):
     def setProgramName(self, name):
         self.setWindowTitle(name)
     def initUI(self):
-        self.setGeometry(300, 300, 800, 520)
+        self.setGeometry(300, 300, 815, 525)
 
         fixedSize = QSize(360,240)
 
         #self.setMaximumSize(fixedSize)
-        self.setMinimumSize(fixedSize)
+        #self.setMinimumSize(fixedSize)
 
         self.setWindowIcon(QIcon(sys.modules['basedir']+'/ui/dirride.png'))
 
@@ -57,7 +57,7 @@ class qt_gui(QMainWindow):
         self.filewindow()
         self.leftPanel()#Only last
         self.show()
-        #self.setFocusPolicy(Qt.StrongFocus)
+        self.setFocusPolicy(Qt.StrongFocus)
 
         self.resizeEvent(QResizeEvent) #Fix geometry on start app
 
@@ -76,6 +76,9 @@ class qt_gui(QMainWindow):
 
         self.loader = QWidget(self.addrborder)
         self.address = QLineEdit(self.addrborder)
+
+        fact = QStyleFactory.create("Fusion")
+        self.address.setStyle(fact)
 
         self.btn_undo = QPushButton(self.addrborder)
         self.btn_redo = QPushButton(self.addrborder)
@@ -199,6 +202,7 @@ class qt_gui(QMainWindow):
         #self.loader.setGeometry(self.address.geometry())
 
 
+
         self.fw.move(self.lPaenl.geometry().x() + self.lPaenl.geometry().width(),
                      self.addrborder.geometry().y() + self.addrborder.geometry().height())
         self.fw.setSize(self.main.width() - self.lPaenl.geometry().width(),
@@ -225,5 +229,5 @@ class qt_gui(QMainWindow):
             self.history.set(redir, self.fw.scroll_pos)
         else:
             self.fw.setDir('/')
-            self.history.set('/')
+            self.history.set('/', 0)
 

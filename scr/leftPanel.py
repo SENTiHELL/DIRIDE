@@ -1,5 +1,5 @@
-from PyQt5.QtWidgets import QWidget, QLabel
-
+from PyQt5.QtWidgets import QWidget, QLabel, QLineEdit
+import sys
 class leftPanel(QWidget):
 
     def __init__(self, parent=None):
@@ -9,6 +9,7 @@ class leftPanel(QWidget):
         pass
     def init(self):
         self.bg = QWidget(self)
+
         self.module = self.parent.parent().parent().module
         #self.mod = self.parent.parent().module
         #print(self.module.panel(), 'eeee')
@@ -17,6 +18,8 @@ class leftPanel(QWidget):
         except:
             pass
         self.bg.setFixedSize(100,100)
+
+
     def resizeEvent(self, QResizeEvent):
         self.bg.setFixedSize(self.parent.size())
     def setStyleSheet(self, p_str):

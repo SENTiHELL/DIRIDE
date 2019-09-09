@@ -12,6 +12,7 @@ class about(QWidget):
 
         self.init()
     def init(self):
+
         sys.modules['m'].callbackResize.append(self.res)
 
         #self.setStyleSheet("background: red") # temp
